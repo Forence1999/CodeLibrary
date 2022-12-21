@@ -22,11 +22,10 @@ def plot_curve(data, title=None, img_path=None, show=True, y_lim=None, linestyle
     '''
     data: tuple of every curve's label, data and color
     for example:
-        curve_name = ['Training acc_t', 'Validation acc_t', 'Test acc_t']
-        curve_data = [train_acc, val_acc, test_acc]
+        name = ['Training Acc', 'Validation Acc', 'Test Acc']
+        data = [train_acc, val_acc, test_acc]
         color = ['r', 'y', 'cyan']
-        utils.plot_curve(data=list(zip(curve_name, curve_data, color)), title=title, img_path=img_path)
-
+        plot_curve(data=list(zip(name, data, color)), title=title, img_path=img_path)
     '''
     plt.figure()
     for i in data:
@@ -50,10 +49,10 @@ def plot_hist(data, title=None, img_path=None, bins=100, show=True):
     '''
     data: tuple of every curve's label, data and color
     for example:
-        curve_name = ['Training acc_t', 'Validation acc_t', 'Test acc_t']
-        curve_data = [train_acc, val_acc, test_acc]
+        name = ['Training Acc', 'Validation Acc', 'Test Acc']
+        data = [train_acc, val_acc, test_acc]
         color = ['r', 'y', 'cyan']
-        utils.plot_curve(data=list(zip(curve_name, curve_data, color)), title=title, img_path=img_path)
+        plot_curve(data=list(zip(name, data, color)), title=title, img_path=img_path)
 
     '''
     plt.figure()

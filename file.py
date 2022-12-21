@@ -149,6 +149,97 @@ def add_prefix_and_suffix_4_basename(path, prefix=None, suffix=None):
     return os.path.join(dir_path, filename)
 
 
+# -------------------------- read & save -------------------------- #
+def _():
+    '''
+    
+    :return:
+    '''
+    import numpy as np
+    
+    # txt 格式
+    data = np.loadtxt("data.txt")
+    np.save("data.txt", data)
+    
+    # 将文件读入list中
+    data = []
+    for line in open("data.txt", "r"):  # 设置文件对象并读取每一行文件
+        data.append(line)  # 将每一行文件加入到list中
+    
+    # 将list写入txt文件
+    with open('data.txt', 'w') as f:
+        for name in info_list:
+            f.write(name)
+            f.write('\n')
+    
+    # mat 格式
+    # 读取matlab的文件
+    from scipy.io import loadmat
+    
+    def load_data(path_to_file):
+        annots = loadmat(path_to_file)
+        data = annots['x']
+        labels = annots['y'].flatten()
+        labels -= 1
+        return data, labels
+    
+    # 保存matlab的文件
+    from scipy.io import savemat
+    
+    savemat('D://data.mat', {
+        'x': data
+    })
+    
+    # npz 格式
+    # 保存文件
+    import numpy as np
+    
+    np.savez("data.npz", x=x, y=y)
+    
+    # 读取文件
+    import numpy as np
+    
+    data = np.load('./data/data.npz')
+    x, z = data['x'], data['z']
+    
+    # mkl 格式
+    import torch
+    
+    # 读取模型文件
+    model_path = './models/trained_model.pkl'
+    model = MLP(n_feature=100, n_hidden=16, n_output=2)
+    model.load_state_dict(torch.load(model_path))
+    
+    # 保存模型文件
+    model = MLP(n_feature=100, n_hidden=16, n_output=2)
+    torch.save(model.state_dict(), model_path)
+    
+    # pkl 格式
+    import joblib
+    
+    # 模型训练
+    gbm = LGBMClassifier(num_leaves=31, learning_rate=0.05, n_estimators=20)
+    gbm.fit(X_train, y_train, eval_set=[(X_test, y_test)], early_stopping_rounds=5)
+    
+    # 模型存储
+    joblib.dump(gbm, 'demo_model.pkl')
+    
+    # 模型加载
+    gbm = joblib.load('demo_model.pkl')
+
+
+def read_txt(path, encoding='utf-8'):
+    '''
+    read txt file
+    :param path:
+    :param encoding:
+    :return:
+    '''
+    with open(path, 'r', encoding=encoding) as f:
+        lines = f.readlines()
+    return lines
+
+
 if __name__ == '__main__':
     print('Hello World!')
     

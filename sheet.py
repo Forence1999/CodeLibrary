@@ -26,6 +26,41 @@ def save_to_csv(path, data, index=None, columns=None, dtype=None, copy=None, ): 
     
     return True
 
+def _():
+    '''
+    
+    :return:
+    '''
+
+    # csv 格式
+    # 读取文件
+    import csv
+    import numpy as np
+    with open('./data/train.csv', 'r') as csvfile:
+        reader = csv.reader(csvfile)
+        rows = [row for row in reader]
+    data = np.array(rows)
+
+    # 保存文件
+    import pandas as pd
+    a, b = [1, 2, 3], [4, 5, 6]  # 只能是一维数组
+    dataframe = pd.DataFrame({
+                                 'a_name': a,
+                                 'b_name': b
+                             })  # 字典中的key值即为csv中列名
+    dataframe.to_csv("test.csv", index=False, sep=',')
+
+    # xlsx 格式
+    # 读取文件
+    import pandas as pd
+    df = pd.read_excel('./data/aa.xlsx', encoding='gbk')  # usecols =[0, 5] 指定列
+    [num, item] = df.values.shape
+
+    # 保存文件
+    import pandas as pd
+    data = pd.DataFrame([['a', 'b'], ['c', 'd']], index=['row 1', 'row 2'], columns=['col 1', 'col 2'])
+    data.to_excel('./data/bb.xlsx', index=False)
+
 
 if __name__ == '__main__':
     print('Hello World!')
