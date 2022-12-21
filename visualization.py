@@ -9,10 +9,8 @@ import os
 import matplotlib.font_manager as fm
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sn
 from PIL import Image
 from matplotlib.collections import QuadMesh
-from pandas import DataFrame
 from sklearn.metrics import confusion_matrix
 
 
@@ -270,6 +268,8 @@ def plot_2d_heatmap(data, is_confusion_matrix=False, title=None, x_label=None, x
         
         return data_df
     
+    from pandas import DataFrame
+    
     data = np.array(data)
     x_ticks = map(str, range(data.shape[1])) if (x_ticks is None) else x_ticks
     y_ticks = map(str, range(data.shape[0])) if (y_ticks is None) else y_ticks
@@ -287,6 +287,8 @@ def plot_2d_heatmap(data, is_confusion_matrix=False, title=None, x_label=None, x
     # annot_kws = {
     #     "size": fontsize
     # }
+    import seaborn as sn
+    
     ax = sn.heatmap(data_df, annot=annot_cell, linewidths=linewidth, ax=ax, cbar=show_cbar,  # annot_kws=annot_kws,
                     cmap=cmap, linecolor='w', )
     if tick_rotation_degree is not None:
