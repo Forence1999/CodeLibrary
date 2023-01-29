@@ -50,17 +50,17 @@ def plot_hist(data, title=None, img_path=None, bins=100, show=True):
         name = ['Training Acc', 'Validation Acc', 'Test Acc']
         data = [train_acc, val_acc, test_acc]
         color = ['r', 'y', 'cyan']
-        plot_curve(data=list(zip(name, data, color)), title=title, img_path=img_path)
-
+        plot_hist(data=list(zip(name, data, color)), title=title, img_path=img_path)
     '''
     plt.figure()
     for i in data:
-        plt.hist(i[1], bins, color=i[2], label=i[0])
+        plt.hist(i[1], bins,rwidth=0.5, color=i[2], label=i[0])
     
     # plt.ylim(0, 1.1)
     plt.title(title)
     plt.legend()
     if img_path is not None:
+        os.makedirs(os.path.dirname(img_path), exist_ok=True)
         plt.savefig(img_path)
     if show:
         plt.show()
