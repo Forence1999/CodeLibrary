@@ -70,11 +70,12 @@ def plot_duration_distribution(path=None, name=None, durations=None):
 
 if __name__ == '__main__':
     print('Hello World!')
-    
+    # splits = ['wo_preprocess/train', 'wo_preprocess/dev', 'wo_preprocess/test']
+    # splits = ['AZ_apostrophe/train', 'AZ_apostrophe/dev', 'AZ_apostrophe/test']
     splits = ['10m/train', '1h/train', '10h/train', '100h/train']
-    path_pattern = '/data2/swang/asr/TEDLIUM_release-3/legacy_cropped/{split}.tsv'
+    path_pattern = '/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/{split}.tsv'
     for split in splits:
         path = path_pattern.format(split=split)
         dur_h, seconds = calcu_total_duration(path, filter_unknown=False, return_seconds=True)
         print('The total duration of the {} set (hour): {:.2f}'.format(split, dur_h))
-        plot_duration_distribution(durations=seconds, name=split + ' (wo <unk>)')
+        plot_duration_distribution(durations=seconds, name=split)

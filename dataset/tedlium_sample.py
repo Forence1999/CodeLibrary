@@ -44,6 +44,7 @@ def sample_audio(audio_path: Path, dest_dir: Path, duration: int):
     print(f'Selected {len(selected_data)} audios, {selected_duration:.2f} hours')
     
     # write
+    dest_dir.mkdir(parents=True, exist_ok=True)
     dest_csv = dest_dir / audio_path.name
     with open(dest_csv, "w") as tsv_out, \
             open(dest_csv.with_suffix(".ltr"), "w") as ltr_out, \
@@ -60,9 +61,9 @@ if __name__ == "__main__":
     
     splits = ['train', ]
     
-    path_pattern = '/data2/swang/asr/TEDLIUM_release-3/legacy_cropped/wo_unk/{split}.tsv'
-    dest_dir = Path('/data2/swang/asr/TEDLIUM_release-3/legacy_cropped/10m')
-    duration = 1 * 3600 / 6  # seconds
+    path_pattern = '/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/AZ_apostrophe/{split}.tsv'
+    dest_dir = Path('/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/10m')
+    duration = 1. * 3600 * 1/6  # seconds
     for split in splits:
         print(f'Processing {split}...')
         audio_path = Path(path_pattern.format(split=split))

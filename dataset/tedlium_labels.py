@@ -12,10 +12,12 @@ Helper script to pre-compute embeddings for a flashlight (previously called wav2
 import argparse
 import os
 from pathlib import Path
-import re
 
 
 def main(args):
+    '''
+    according to the tsv file, extract the transcriptions and save them in .ltr and .wrd files.
+    '''
     
     os.makedirs(args.output_dir, exist_ok=True)
     
@@ -28,8 +30,8 @@ def main(args):
             trans_path = (root / line).with_suffix('.txt')
             with open(trans_path, "r") as t:
                 trans = next(t).strip()
-            # trans = re.sub(r"[^[a-zA-Z]']", '', trans)  # only keep letters and apostrophes
-            trans = re.sub(r" +", ' ', trans).replace(" '", "'").upper()
+            # trans = re.sub(r"[^a-zA-Z']", '', trans)  # only keep letters and apostrophes
+            # trans = re.sub(r" +", ' ', trans).replace(" '", "'").upper()
             print(trans, file=wrd_out)
             print(" ".join(list(trans.replace(" ", "|"))) + " |", file=ltr_out, )
 
@@ -37,9 +39,9 @@ def main(args):
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--tsv",
-                        default="/data2/swang/asr/TEDLIUM_release-3/legacy_cropped/unfiltered/test.tsv")
+                        default="/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/wo_preprocess/test.tsv")
     parser.add_argument("--output-dir",
-                        default="/data2/swang/asr/TEDLIUM_release-3/legacy_cropped/unfiltered")
+                        default="/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/wo_preprocess")
     parser.add_argument("--output-name",
                         default="test")
     

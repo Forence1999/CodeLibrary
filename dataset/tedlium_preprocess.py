@@ -9,10 +9,10 @@
 from pathlib import Path
 import re
 
-
-def filter_audio_with_unknown_tag(audio_path: Path, dest_dir: Path):
+def preprocess_sample(audio_path: Path, dest_dir: Path):
     '''
-    Filter the audios with unknown tag
+    only keep letters and apostrophes (i.e. delete <unk> tag and other symbols)
+    delete samples with blank transcription
     audio_path: Path to the audio tsv file
     dest_dir: Path to the destination directory
     '''
@@ -20,31 +20,29 @@ def filter_audio_with_unknown_tag(audio_path: Path, dest_dir: Path):
     root_path = audio_lines[0].strip()
     audio_lines = audio_lines[1:]
     
-    wrd_path = audio_path.with_suffix('.wrd')
+    wrd_path = audio_path.with_suffix(".wrd")
     wrd_lines = wrd_path.read_text().splitlines()
-    for i in range(len(wrd_lines) - 1, -1, -1):
-        if ('<UNK>' in wrd_lines[i]) or ('<unk>' in wrd_lines[i]):
-            audio_lines.pop(i)
-            wrd_lines.pop(i)
     
     # normalize and save the path
+    dest_dir.mkdir(parents=True, exist_ok=True)
     dest_csv = dest_dir / audio_path.name
     with open(dest_csv, "w") as tsv_out, \
             open(dest_csv.with_suffix(".ltr"), "w") as ltr_out, \
             open(dest_csv.with_suffix(".wrd"), "w") as wrd_out:
         print(root_path, file=tsv_out)
-    
+        
         for csv_line, wrd_line in zip(audio_lines, wrd_lines):
             # preprocess the wrd_line
-            wrd_line = wrd_line.strip()
-            wrd_line = re.sub(r"[^[a-zA-Z]']", '', wrd_line)  # only keep letters and apostrophes
-            wrd_line = re.sub(r" +", ' ', wrd_line).replace(" '", "'").upper()
+            wrd_line = wrd_line.strip().replace("<unk>", " ").replace("<UNK>", " ")
+            wrd_line = re.sub(r"[^a-zA-Z']", " ", wrd_line)  # only keep letters and apostrophes
+            wrd_line = re.sub(r" +", ' ', wrd_line).replace(" '", "'").strip().upper()
             
-            char_line = " ".join(list(wrd_line.replace(" ", "|"))) + " |"
-            
-            print(csv_line, file=tsv_out)
-            print(wrd_line, file=wrd_out)
-            print(char_line, file=ltr_out)
+            if wrd_line != '':
+                char_line = " ".join(list(wrd_line.replace(" ", "|"))) + " |"
+                
+                print(csv_line, file=tsv_out)
+                print(wrd_line, file=wrd_out)
+                print(char_line, file=ltr_out)
 
 
 if __name__ == "__main__":
@@ -52,9 +50,9 @@ if __name__ == "__main__":
     
     splits = ['train', 'dev', 'test']
     
-    path_pattern = '/data2/swang/asr/TEDLIUM_release-3/legacy_cropped/unfiltered/{split}.tsv'
-    dest_dir = Path('/data2/swang/asr/TEDLIUM_release-3/legacy_cropped/filtered')
+    path_pattern = '/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/wo_preprocess/{split}.tsv'
+    dest_dir = Path('/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/AZ_apostrophe')
     for split in splits:
         print(f'Processing {split}...')
         audio_path = Path(path_pattern.format(split=split))
-        filter_audio_with_unknown_tag(audio_path, dest_dir=dest_dir)
+        preprocess_sample(audio_path, dest_dir=dest_dir)
