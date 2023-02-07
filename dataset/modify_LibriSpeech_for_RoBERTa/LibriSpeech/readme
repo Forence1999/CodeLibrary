@@ -1,0 +1,6 @@
+encoder.json (token, idx) -> encoder
+vocab.bpe (byte pair) -> bpe_merges -> bpe_ranks (pair, idx) # idx 用来索引最小的pair —— 频率最高
+dict.txt (token_idx, freq) -> vocab
+word -> byte_encoder (ord) -> [byte-pair encoding with bpe_ranks] -> [encoder mapping toekn to number]
+
+
