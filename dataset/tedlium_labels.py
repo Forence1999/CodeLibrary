@@ -15,39 +15,39 @@ from pathlib import Path
 
 
 def main(args):
-    '''
-    according to the tsv file, extract the transcriptions and save them in .ltr and .wrd files.
-    '''
-    
-    os.makedirs(args.output_dir, exist_ok=True)
-    
-    with open(args.tsv, "r") as tsv, \
-            open(os.path.join(args.output_dir, args.output_name + ".ltr"), "w") as ltr_out, \
-            open(os.path.join(args.output_dir, args.output_name + ".wrd"), "w") as wrd_out:
-        root = Path(next(tsv).strip())
-        for line in tsv:
-            line = line.strip().split("\t")[0]
-            trans_path = (root / line).with_suffix('.txt')
-            with open(trans_path, "r") as t:
-                trans = next(t).strip()
-            # trans = re.sub(r"[^a-zA-Z']", '', trans)  # only keep letters and apostrophes
-            # trans = re.sub(r" +", ' ', trans).replace(" '", "'").upper()
-            print(trans, file=wrd_out)
-            print(" ".join(list(trans.replace(" ", "|"))) + " |", file=ltr_out, )
+	'''
+	according to the tsv file, extract the transcriptions and save them in .ltr and .wrd files.
+	'''
+	
+	os.makedirs(args.output_dir, exist_ok=True)
+	
+	with open(args.tsv, "r") as tsv, \
+			open(os.path.join(args.output_dir, args.output_name + ".ltr"), "w") as ltr_out, \
+			open(os.path.join(args.output_dir, args.output_name + ".wrd"), "w") as wrd_out:
+		root = Path(next(tsv).strip())
+		for line in tsv:
+			line = line.strip().split("\t")[0]
+			trans_path = (root / line).with_suffix('.txt')
+			with open(trans_path, "r") as t:
+				trans = next(t).strip()
+			# trans = re.sub(r"[^a-zA-Z']", '', trans)  # only keep letters and apostrophes
+			# trans = re.sub(r" +", ' ', trans).replace(" '", "'").upper()
+			print(trans, file=wrd_out)
+			print(" ".join(list(trans.replace(" ", "|"))) + " |", file=ltr_out, )
 
 
 def parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--tsv",
-                        default="/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/wo_preprocess/test.tsv")
-    parser.add_argument("--output-dir",
-                        default="/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/wo_preprocess")
-    parser.add_argument("--output-name",
-                        default="test")
-    
-    return parser.parse_args()
+	parser = argparse.ArgumentParser()
+	parser.add_argument("--tsv",
+						default="/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/wo_preprocess/test.tsv")
+	parser.add_argument("--output-dir",
+						default="/home/swang/project/smartspeaker/asr/fairseq/examples/wav2vec/dataset/TED-LIUM3/wo_preprocess")
+	parser.add_argument("--output-name",
+						default="test")
+	
+	return parser.parse_args()
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    main(args)
+	args = parse_args()
+	main(args)
