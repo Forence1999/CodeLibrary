@@ -145,7 +145,9 @@ def main(stm_files, sph_files, dic_file, out_dir, num_processes):
 	pool = multiprocessing.Pool(num_processes)
 	process_fn = functools.partial(process, dictionary, out_dir)
 	pool.map(process_fn, [(sph_files[i], stm_files[i]) for i in range(len(sph_files))])
-	# process(dictionary, out_dir, (sph_files[0], stm_files[0]))
+
+
+# process(dictionary, out_dir, (sph_files[0], stm_files[0]))
 
 
 if __name__ == '__main__':

@@ -780,7 +780,7 @@ def rescaled_softmax(y, num_classes, tau=1.):  # TODO: has not been tested
 		# we are dealing with class labels of shape [N], not class probabilities.
 		# one hot encode the score and then scale.
 		y = tf.one_hot(y, depth=num_classes)
-		# y = tf.nn.softmax(y, axis=-1)
+	# y = tf.nn.softmax(y, axis=-1)
 	
 	if is_tensor:
 		return y

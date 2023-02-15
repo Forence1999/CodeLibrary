@@ -42,7 +42,8 @@ class ResCNN_4_STFT_DOA(tf.keras.Model):  # channel-last
 		self.conv_4 = Sequential([
 			Conv2D(1, kernel_size=(num_time_clips, 1), strides=(1, 1), padding='valid', use_bias=True),
 			BatchNormalization(axis=-1), Reshape((-1,)), Activation('softmax')])
-		# self.flatten = Flatten(name='flatten')
+
+	# self.flatten = Flatten(name='flatten')
 
 	def call(self, x, training=None, mask=None):
 		# Input.shape: (None, 30, 508, 8)

@@ -95,7 +95,8 @@ class CommunicationPeer(object):
 		data = json.dumps(data)
 		by_data = data.encode('utf-8')
 		self.send_bytes(by_message=by_data, subtopic=subtopic)
-		# print("Sending data:", message)
+
+	# print("Sending data:", message)
 
 	def send_np(self, array, subtopic='', ):  # have not been tested
 		'''
@@ -108,7 +109,8 @@ class CommunicationPeer(object):
 		'''
 		by_array = msgpack.dumps(array, default=msgnp.encode, use_bin_type=False)
 		self.send_bytes(by_message=by_array, subtopic=subtopic)
-		# print("Sending array:", array)
+
+	# print("Sending array:", array)
 
 	def send(self, data, subtopic='', ):
 		'''
@@ -121,7 +123,8 @@ class CommunicationPeer(object):
 		'''
 		by_data = msgpack.dumps(data, default=msgnp.encode, use_bin_type=False)
 		self.send_bytes(by_message=by_data, subtopic=subtopic)
-		# print("Sending data:", data)
+
+	# print("Sending data:", data)
 
 	def recv_bytes(self, subtopic='', ):
 		'''

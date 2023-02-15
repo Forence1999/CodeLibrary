@@ -15,11 +15,11 @@ def collect_pkg(path):
 			line = [i for i in line if i != '']
 			if len(line) == 3:
 				pkg.add(line[0])
-				# pkg.add(line[0]+' = '+line[1])
+			# pkg.add(line[0]+' = '+line[1])
 			elif len(line) == 4:
 				pkg.add(line[0])
-				# pkg.add(line[0]+' = '+line[1])
-				# pkg.add(line[0] + '=' + line[1] + ' ' + line[3])
+			# pkg.add(line[0]+' = '+line[1])
+			# pkg.add(line[0] + '=' + line[1] + ' ' + line[3])
 			else:
 				warnings.warn('The line is not correct: {}'.format(line))
 	return pkg
@@ -34,11 +34,11 @@ if __name__ == '__main__':
 	print()
 	print('g15: ', pkg_15 - pkg_14)
 
-	# res = pkg_15 - pkg_14
-	# res = ["pip install " + i.strip(' pypi') for i in res]
-	# print(" && ".join(res))
-	#
-	# pass
+# res = pkg_15 - pkg_14
+# res = ["pip install " + i.strip(' pypi') for i in res]
+# print(" && ".join(res))
+#
+# pass
 
 # && pip install apex==0.1
 # && pip install aml==6.0
