@@ -108,7 +108,8 @@ class D2Block(keras.Model):
 									 dilation=dilation,
 									 norm=norm[idx], activation=activation[idx], eps=eps)
 			self.sub_blocks.append(conv_block)
-		# _in_channels = growth_rate[idx]
+
+	# _in_channels = growth_rate[idx]
 
 	def call(self, inputs, training=None, mask=None):
 		"""
