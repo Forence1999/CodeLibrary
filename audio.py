@@ -46,12 +46,12 @@ def framesig(sig, frame_len, frame_step, winfunc=lambda x: np.ones((x,)),
 		numframes = 1
 	else:
 		numframes = 1 + int(math.ceil((1.0 * slen - frame_len) / frame_step))
-
+	
 	padlen = int((numframes - 1) * frame_step + frame_len)
-
+	
 	zeros = np.zeros((padlen - slen,))
 	padsignal = np.concatenate((sig, zeros))
-
+	
 	if stride_trick:
 		win = winfunc(frame_len)
 		frames = rolling_window(padsignal, window=frame_len, step=frame_step)
@@ -61,7 +61,7 @@ def framesig(sig, frame_len, frame_step, winfunc=lambda x: np.ones((x,)),
 		indices = np.array(indices, dtype=np.int32)
 		frames = padsignal[indices]
 		win = np.tile(winfunc(frame_len), (numframes, 1))
-
+	
 	return frames * win
 
 
@@ -79,24 +79,24 @@ def deframesig(frames, siglen, frame_len, frame_step, winfunc=lambda x: np.ones(
 	frame_step = int(frame_step)
 	numframes = np.shape(frames)[0]
 	assert np.shape(frames)[1] == frame_len, '"frames" matrix is wrong size, 2nd dim is not equal to frame_len'
-
+	
 	indices = np.tile(np.arange(0, frame_len), (numframes, 1)) + np.tile(
 		np.arange(0, numframes * frame_step, frame_step), (frame_len, 1)).T
 	indices = np.array(indices, dtype=np.int32)
 	padlen = (numframes - 1) * frame_step + frame_len
-
+	
 	if siglen <= 0:
 		siglen = padlen
-
+	
 	rec_signal = np.zeros((padlen,))
 	window_correction = np.zeros((padlen,))
 	win = winfunc(frame_len)
-
+	
 	for i in range(0, numframes):
 		window_correction[indices[i, :]] = window_correction[
 											   indices[i, :]] + win + 1e-15  # add a little bit so it is never zero
 		rec_signal[indices[i, :]] = rec_signal[indices[i, :]] + frames[i, :]
-
+	
 	rec_signal = rec_signal / window_correction
 	return rec_signal[0:siglen]
 
@@ -129,13 +129,13 @@ def read_and_split_channels_from_file(filepath, ):  # TODO: has not been tested
 	f.close()
 	audio = np.frombuffer(str_data, dtype=np.short)
 	audio = np.reshape(audio, (-1, num_channel)).T / 32768.
-
+	
 	return audio
 
 
 def audioread(path, norm=False, start=0, stop=None, target_level=-25):  # TODO: has not been tested
 	'''Function to read audio'''
-
+	
 	path = os.path.abspath(path)
 	if not os.path.exists(path):
 		raise ValueError("[{}] does not exist!".format(path))
@@ -144,7 +144,7 @@ def audioread(path, norm=False, start=0, stop=None, target_level=-25):  # TODO: 
 	except RuntimeError:  # fix for sph pcm-embedded shortened v2
 		print('WARNING: Audio type not supported')
 		exit(1)
-
+	
 	if len(audio.shape) == 1:  # mono
 		if norm:
 			rms = (audio ** 2).mean() ** 0.5
@@ -155,7 +155,7 @@ def audioread(path, norm=False, start=0, stop=None, target_level=-25):  # TODO: 
 		audio = audio.sum(axis=0) / audio.shape[0]
 		if norm:
 			audio = normalize_single_channel_audio(audio, target_level=target_level, )
-
+	
 	return audio, sample_rate
 
 
@@ -182,7 +182,7 @@ def audio_segmenter_4_file(input_path, dest_dir, segment_len, stepsize, fs=None,
 		audio = librosa.core.resample(audio, ini_fs, fs)
 	else:
 		fs = ini_fs
-
+	
 	audio_segments = audio_segmenter_4_numpy(audio, segment_len=segment_len, stepsize=stepsize, fs=fs,
 											 window=window, padding=padding, pow_2=pow_2)
 	file_basename = os.path.basename(input_path)
@@ -212,10 +212,10 @@ def audio_segmenter_4_numpy(audio, segment_len, stepsize, fs=16000, window='hann
 	:param pow_2:
 	:return:
 	'''
-
+	
 	seg_len = next_greater_power_of_2(segment_len * fs) if pow_2 else int(segment_len * fs)
 	step_size = int(stepsize * fs)
-
+	
 	# complement the audio
 	if padding:
 		if len(audio) > seg_len and (len(audio) - seg_len) % step_size != 0:
@@ -229,15 +229,15 @@ def audio_segmenter_4_numpy(audio, segment_len, stepsize, fs=16000, window='hann
 			audio = audio[: - ((len(audio) - seg_len) % step_size)]
 		elif len(audio) < seg_len:
 			raise ValueError('audio is too short to be segmented')
-
+	
 	# split the audio
 	num_segments = (len(audio) - seg_len) // step_size + 1
 	audio_segments = np.asarray([audio[i * step_size:seg_len + i * step_size] for i in range(num_segments)])
-
+	
 	if (window is not None) and (len(audio_segments) > 0):
 		win = get_window(window, seg_len)
 		audio_segments = audio_segments * win
-
+	
 	return np.asarray(audio_segments)
 
 
@@ -269,21 +269,21 @@ def save_multi_channel_audio(audio, fs, des_dir, norm=False, ):  # TODO: has not
 def audiowrite(destpath, audio, sample_rate=16000, norm=False, target_level=-25, clipping_threshold=None,
 			   clip_test=False):  # TODO: has not been tested
 	'''Function to write audio'''
-
+	
 	if clip_test:
 		if is_clipped(audio, clipping_threshold=clipping_threshold):
 			raise ValueError("Clipping detected in audiowrite()! " + destpath + " file not written to disk.")
-
+	
 	if norm:
 		audio = normalize_single_channel_audio(audio, target_level=target_level, )
 	if clipping_threshold is not None:
 		max_amp = max(abs(audio))
 		if max_amp >= clipping_threshold:
 			audio = audio / max_amp * (clipping_threshold - EPS)
-
+	
 	destpath = os.path.abspath(destpath)
 	os.makedirs(os.path.dirname(destpath), exist_ok=True)
-
+	
 	sf.write(destpath, audio, sample_rate)
 
 
@@ -291,12 +291,12 @@ def audiowrite(destpath, audio, sample_rate=16000, norm=False, target_level=-25,
 
 def extract_mel_feature():  # TODO: has not been tested
 	import librosa
-
+	
 	y, sr = librosa.load('./train_nb.wav', sr=16000)
 	# 提取 mel spectrogram feature
 	melspec = librosa.feature.melspectrogram(y, sr, n_fft=1024, hop_length=512, n_mels=128)
 	logmelspec = librosa.power_to_db(melspec)  # 转换到对数刻度
-
+	
 	print(logmelspec.shape)
 
 
@@ -343,7 +343,7 @@ def add_reverb(sasxExe, input_wav, filter_file, output_wav):  # TODO: has not be
 	''' Function to add reverb'''
 	command_sasx_apply_reverb = "{0} -r {1} \
         -f {2} -o {3}".format(sasxExe, input_wav, filter_file, output_wav)
-
+	
 	subprocess.call(command_sasx_apply_reverb)
 	return output_wav
 
@@ -375,23 +375,23 @@ def snr_mixer(params, clean, noise, snr, target_level=-25, clipping_threshold=0.
 		noise = np.append(noise, np.zeros(len(clean) - len(noise)))
 	else:
 		clean = np.append(clean, np.zeros(len(noise) - len(clean)))
-
+	
 	# Normalizing to -25 dB FS
 	clean = clean / (max(abs(clean)) + EPS)
 	clean = normalize_single_channel_audio(clean, target_level=target_level, )
 	rmsclean = (clean ** 2).mean() ** 0.5
-
+	
 	noise = noise / (max(abs(noise)) + EPS)
 	noise = normalize_single_channel_audio(noise, target_level=target_level, )
 	rmsnoise = (noise ** 2).mean() ** 0.5
-
+	
 	# Set the noise level for a given SNR
 	noisescalar = rmsclean / (10 ** (snr / 20)) / (rmsnoise + EPS)
 	noisenewlevel = noise * noisescalar
-
+	
 	# Mix noise and clean speech
 	noisyspeech = clean + noisenewlevel
-
+	
 	# Randomly select RMS value between -15 dBFS and -35 dBFS and normalize noisyspeech with that value
 	# There is a chance of clipping that might happen with very less probability, which is not a major issue.
 	noisy_rms_level = np.random.randint(params['target_level_lower'], params['target_level_upper'])
@@ -400,7 +400,7 @@ def snr_mixer(params, clean, noise, snr, target_level=-25, clipping_threshold=0.
 	noisyspeech = noisyspeech * scalarnoisy
 	clean = clean * scalarnoisy
 	noisenewlevel = noisenewlevel * scalarnoisy
-
+	
 	# Final check to see if there are any amplitudes exceeding +/- 1. If so, normalize all the signals accordingly
 	if is_clipped(noisyspeech):
 		noisyspeech_maxamplevel = max(abs(noisyspeech)) / (clipping_threshold - EPS)
@@ -408,7 +408,7 @@ def snr_mixer(params, clean, noise, snr, target_level=-25, clipping_threshold=0.
 		clean = clean / noisyspeech_maxamplevel
 		noisenewlevel = noisenewlevel / noisyspeech_maxamplevel
 		noisy_rms_level = int(20 * np.log10(scalarnoisy / noisyspeech_maxamplevel * (rmsnoisy + EPS)))
-
+	
 	return clean, noisenewlevel, noisyspeech, noisy_rms_level
 
 
@@ -428,7 +428,7 @@ def segmental_snr_mixer(params, clean, noise, snr, target_level=-25,
 	# Set the noise level for a given SNR
 	noisescalar = rmsclean / (10 ** (snr / 20)) / (rmsnoise + EPS)
 	noisenewlevel = noise * noisescalar
-
+	
 	# Mix noise and clean speech
 	noisyspeech = clean + noisenewlevel
 	# Randomly select RMS value between -15 dBFS and -35 dBFS and normalize noisyspeech with that value
@@ -446,7 +446,7 @@ def segmental_snr_mixer(params, clean, noise, snr, target_level=-25,
 		clean = clean / noisyspeech_maxamplevel
 		noisenewlevel = noisenewlevel / noisyspeech_maxamplevel
 		noisy_rms_level = int(20 * np.log10(scalarnoisy / noisyspeech_maxamplevel * (rmsnoisy + EPS)))
-
+	
 	return clean, noisenewlevel, noisyspeech, noisy_rms_level
 
 
@@ -463,7 +463,7 @@ def active_rms(clean, noise, fs=16000, energy_thresh=-50, window_size=32):  # TO
 	sample_start = 0
 	noise_active_segs = []
 	clean_active_segs = []
-
+	
 	while sample_start < len(noise):
 		sample_end = min(sample_start + window_samples, len(noise))
 		noise_win = noise[sample_start:sample_end]
@@ -475,19 +475,19 @@ def active_rms(clean, noise, fs=16000, energy_thresh=-50, window_size=32):  # TO
 			noise_active_segs.append(noise_win)
 			clean_active_segs.append(clean_win)
 		sample_start += window_samples
-
+	
 	if len(noise_active_segs) != 0:
 		noise_active_segs = np.concatenate(noise_active_segs, axis=-1)
 		noise_rms = (noise_active_segs ** 2).mean() ** 0.5
 	else:
 		noise_rms = 0.
-
+	
 	if len(clean_active_segs) != 0:
 		clean_active_segs = np.concatenate(clean_active_segs, axis=-1)
 		clean_rms = (clean_active_segs ** 2).mean() ** 0.5
 	else:
 		clean_rms = 0.
-
+	
 	return clean_rms, noise_rms
 
 
@@ -504,32 +504,32 @@ def active_rms_percentage(clean, noise, fs=16000, active_percentage=0.2, window_
 		clean_wins.append(clean_win), noise_wins.append(noise_win)
 		noise_seg_rmses.append((noise_win ** 2).mean() ** 0.5)
 		sample_start += window_samples
-
+	
 	# find the threshold
 	seg_rms_threshold = np.percentile(noise_seg_rmses, (1. - active_percentage) * 100)
 	noise_active_segs, clean_active_segs = [], []
 	for clean_win, noise_win, noise_seg_rms in zip(*[clean_wins, noise_wins, noise_seg_rmses, ]):
 		if noise_seg_rms > seg_rms_threshold:
 			clean_active_segs.append(clean_win), noise_active_segs.append(noise_win)
-
+	
 	if len(noise_active_segs) != 0:
 		noise_active_segs = np.concatenate(noise_active_segs, axis=-1)
 		noise_rms = (noise_active_segs ** 2).mean() ** 0.5
 	else:
 		noise_rms = 0.
-
+	
 	if len(clean_active_segs) != 0:
 		clean_active_segs = np.concatenate(clean_active_segs, axis=-1)
 		clean_rms = (clean_active_segs ** 2).mean() ** 0.5
 	else:
 		clean_rms = 0.
-
+	
 	return clean_rms, noise_rms
 
 
 def activitydetector(audio, fs=16000, energy_thresh=0.13, target_level=-25):  # TODO: has not been tested
 	'''Return the percentage of the time the audio signal is above an energy threshold'''
-
+	
 	audio = normalize_single_channel_audio(audio, target_level=target_level, )
 	window_size = 50  # in ms
 	window_samples = int(fs * window_size / 1000)
@@ -537,29 +537,29 @@ def activitydetector(audio, fs=16000, energy_thresh=0.13, target_level=-25):  # 
 	cnt = 0
 	prev_energy_prob = 0
 	active_frames = 0
-
+	
 	a = -1
 	b = 0.2
 	alpha_rel = 0.05
 	alpha_att = 0.8
-
+	
 	while sample_start < len(audio):
 		sample_end = min(sample_start + window_samples, len(audio))
 		audio_win = audio[sample_start:sample_end]
 		frame_rms = 20 * np.log10(sum(audio_win ** 2) + EPS)
 		frame_energy_prob = 1. / (1 + np.exp(-(a + b * frame_rms)))
-
+		
 		if frame_energy_prob > prev_energy_prob:
 			smoothed_energy_prob = frame_energy_prob * alpha_att + prev_energy_prob * (1 - alpha_att)
 		else:
 			smoothed_energy_prob = frame_energy_prob * alpha_rel + prev_energy_prob * (1 - alpha_rel)
-
+		
 		if smoothed_energy_prob > energy_thresh:
 			active_frames += 1
 		prev_energy_prob = frame_energy_prob
 		sample_start += window_samples
 		cnt += 1
-
+	
 	perc_active = active_frames / cnt
 	return perc_active
 
@@ -567,7 +567,7 @@ def activitydetector(audio, fs=16000, energy_thresh=0.13, target_level=-25):  # 
 def calculate_audio_power(audio):  # TODO: has not been tested
 	power = (audio ** 2).mean()
 	power_dB = int(10 * np.log10(power / 1e-12 + EPS))  # REF_POWER = 1e-12
-
+	
 	return power_dB
 
 
@@ -577,14 +577,14 @@ def audio_energy_ratio_over_threshold(audio, fs=16000, threshold=None, ):  # TOD
 	audio_energy = rfft_amp ** 2
 	l_idx, h_idx = int(50 * len(audio) / fs + 1), int(500 * len(audio) / fs)
 	energy_ratio = audio_energy[l_idx:h_idx].sum() / (audio_energy[1:l_idx].sum() + EPS)
-
+	
 	# curve_name = ['voice', 'low', ]
 	# curve_data = [audio_energy[1:h_idx], audio_energy[1:l_idx], ]
 	# color = ['r', 'g']
 	# title = path + '_' + str(int(energy_ratio))
 	# img_path = os.path.join('./image', title + '.jpg', )
 	# plot_curve(data=list(zip(curve_name, curve_data, color)), title=title, img_path=img_path, show=False)
-
+	
 	# print('energy_ratio', energy_ratio)
 	if energy_ratio > threshold:
 		return True
