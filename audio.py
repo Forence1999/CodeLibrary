@@ -21,15 +21,163 @@ from scipy.signal import get_window
 
 from .utils import next_greater_power_of_2
 from .visualization import plot_curve
+from pathlib import Path
+import warnings
 
 
 EPS = np.finfo(np.float32).eps
 
 
+# -------------------------- check -------------------------- #
+
+def check_wav_sample_rate(file_path, sr=16000, verbose=0):
+	'''
+	check if the sample rate of the wav file is the same as the given sr
+	:param file_path:
+	:param sr:
+	:param verbose: 0: no output, 1: print warning
+	:return: 1 for pass, 0 for fail
+	'''
+	file_sr = librosa.get_samplerate(file_path)
+	if file_sr != sr:
+		if verbose >= 1:
+			warnings.warn(f'{file_path} has sample rate {file_sr}')
+		return 0
+	else:
+		return 1
+
+
+# -------------------------- resample -------------------------- #
+
+def resample_audio(src_path, dst_path=None, tgt_sr=16000, ):
+	'''
+	resample audio to target_sr
+	:param src_path:
+	:param dst_path:
+	:param tgt_sr: target sample rate
+	:return:
+	'''
+	
+	audio, sr = sf.read(src_path)
+	if sr != tgt_sr:
+		audio = librosa.core.resample(audio, orig_sr=sr, target_sr=tgt_sr)
+	
+	# save
+	if dst_path is not None:
+		if os.path.exists(dst_path):
+			warnings.warn(f'{dst_path} already exists, will be overwritten')
+		os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+		sf.write(dst_path, audio, tgt_sr)
+	
+	return audio
+
+
+# -------------------------- snip audio -------------------------- #
+
+def snip_audio(src_path, dst_path=None, start=0, end=None, ):
+	'''
+	snip audio from start to end
+	:param src_path:
+	:param dst_path:
+	:param start: start frame
+	:param end: end frame
+	:return:
+	'''
+	
+	audio, sr = sf.read(src_path)
+	audio = audio[start:end]
+	
+	# save
+	if dst_path is not None:
+		if os.path.exists(dst_path):
+			warnings.warn(f'{dst_path} already exists, will be overwritten')
+		os.makedirs(os.path.dirname(dst_path), exist_ok=True)
+		sf.write(dst_path, audio, sr)
+	
+	return audio
+
+
+# -------------------------- format conversion -------------------------- #
+
+
+def wav2flac(src_file, dst_file, verbose=0):
+	"""
+
+	:param src_file:
+	:param dst_file:
+	:param verbose: 0: no output, 1: print warning, 2: print output and warning
+	:return:
+	"""
+	if verbose == 2:
+		print(f'Processing {src_file}')
+	
+	src_file = Path(src_file)
+	dst_file = Path(dst_file)
+	
+	if dst_file.exists() and verbose >= 1:
+		warnings.warn(f'{dst_file} already exists but will be overwritten')
+	dst_file.parent.mkdir(parents=True, exist_ok=True)
+	subprocess.run(["ffmpeg", "-y", "-i", str(src_file), str(dst_file)], shell=False)
+
+
 # -------------------------- frame -------------------------- #
 
-def framesig(sig, frame_len, frame_step, winfunc=lambda x: np.ones((x,)),
-			 stride_trick=True):  # TODO: has not been tested
+def get_audio_frame_num(path):
+	'''Get the number of frames'''
+	data, _ = sf.read(path)
+	return data.shape[0]
+
+
+# ---------------------------------------------- Old Version ------------------------------------------------ #
+
+
+# -------------------------- read -------------------------- #
+
+def read_multi_channel_audio(dir_path, num_channel):  # TODO: has not been tested
+	audio = []
+	for i in range(num_channel):
+		file_path = os.path.join(dir_path, f'test_mic_{i}.wav')
+		audio_i, _ = audioread(file_path, )
+		audio.append(audio_i)
+	return np.asarray(audio)
+
+
+def read_and_split_channels_from_file(filepath, ):  # TODO: has not been tested
+	f = wave.open(filepath)
+	params = f.getparams()
+	num_channel, sample_width, fs, num_frame = params[:4]
+	str_data = f.readframes(num_frame)
+	f.close()
+	audio = np.frombuffer(str_data, dtype=np.short)
+	audio = np.reshape(audio, (-1, num_channel)).T / 32768.
+	
+	return audio
+
+
+def audioread(path, norm=False, start=0, stop=None, target_level=-25):  # TODO: has not been tested
+	'''Function to read audio'''
+	
+	path = os.path.abspath(path)
+	if not os.path.exists(path):
+		raise ValueError("[{}] does not exist!".format(path))
+	audio, sample_rate = sf.read(path, start=start, stop=stop)
+	
+	if len(audio.shape) == 1:  # mono
+		if norm:
+			rms = (audio ** 2).mean() ** 0.5
+			scalar = 10 ** (target_level / 20) / (rms + EPS)
+			audio = audio * scalar
+	else:  # multi-channel   average all the channels
+		audio = audio.T
+		audio = audio.sum(axis=0) / audio.shape[0]
+		if norm:
+			audio = normalize_single_channel_audio(audio, target_level=target_level, )
+	
+	return audio, sample_rate
+
+
+def frame_sig(sig, frame_len, frame_step, winfunc=lambda x: np.ones((x,)),
+			  stride_trick=True):  # TODO: has not been tested
 	"""Frame a signal into overlapping frames.
 
 	:param sig: the audio signal to frame.
@@ -65,7 +213,7 @@ def framesig(sig, frame_len, frame_step, winfunc=lambda x: np.ones((x,)),
 	return frames * win
 
 
-def deframesig(frames, siglen, frame_len, frame_step, winfunc=lambda x: np.ones((x,))):  # TODO: has not been tested
+def deframe_sig(frames, siglen, frame_len, frame_step, winfunc=lambda x: np.ones((x,))):  # TODO: has not been tested
 	"""Does overlap-add procedure to undo the action of framesig.
 
 	:param frames: the array of frames.
@@ -108,55 +256,6 @@ def write_frames(frames, filename, channels, sample_rate, record_width):  # TODO
 	wf.setframerate(sample_rate)
 	wf.writeframes(b''.join(frames))
 	wf.close()
-
-
-# -------------------------- read -------------------------- #
-
-def read_multi_channel_audio(dir_path, num_channel):  # TODO: has not been tested
-	audio = []
-	for i in range(num_channel):
-		file_path = os.path.join(dir_path, f'test_mic_{i}.wav')
-		audio_i, _ = audioread(file_path, )
-		audio.append(audio_i)
-	return np.asarray(audio)
-
-
-def read_and_split_channels_from_file(filepath, ):  # TODO: has not been tested
-	f = wave.open(filepath)
-	params = f.getparams()
-	num_channel, sample_width, fs, num_frame = params[:4]
-	str_data = f.readframes(num_frame)
-	f.close()
-	audio = np.frombuffer(str_data, dtype=np.short)
-	audio = np.reshape(audio, (-1, num_channel)).T / 32768.
-	
-	return audio
-
-
-def audioread(path, norm=False, start=0, stop=None, target_level=-25):  # TODO: has not been tested
-	'''Function to read audio'''
-	
-	path = os.path.abspath(path)
-	if not os.path.exists(path):
-		raise ValueError("[{}] does not exist!".format(path))
-	try:
-		audio, sample_rate = sf.read(path, start=start, stop=stop)
-	except RuntimeError:  # fix for sph pcm-embedded shortened v2
-		print('WARNING: Audio type not supported')
-		exit(1)
-	
-	if len(audio.shape) == 1:  # mono
-		if norm:
-			rms = (audio ** 2).mean() ** 0.5
-			scalar = 10 ** (target_level / 20) / (rms + EPS)
-			audio = audio * scalar
-	else:  # multi-channel   average all the channels
-		audio = audio.T
-		audio = audio.sum(axis=0) / audio.shape[0]
-		if norm:
-			audio = normalize_single_channel_audio(audio, target_level=target_level, )
-	
-	return audio, sample_rate
 
 
 # -------------------------- clip -------------------------- #
@@ -320,21 +419,6 @@ def normalize_segmental_rms(audio, rms, target_level=-25):  # TODO: has not been
 	scalar = 10 ** (target_level / 20) / (rms + EPS)
 	audio = audio * scalar
 	return audio
-
-
-# -------------------------- resample -------------------------- #
-
-def resampler(input_dir, target_sr=16000, ext='*.wav'):  # TODO: has not been tested
-	'''Resamples the audio files in input_dir to target_sr'''
-	files = glob.glob(f"{input_dir}/" + ext)
-	for pathname in files:
-		print(pathname)
-		try:
-			audio, fs = audioread(pathname)
-			audio_resampled = librosa.core.resample(audio, fs, target_sr)
-			audiowrite(pathname, audio_resampled, target_sr)
-		except:
-			continue
 
 
 # -------------------------- read -------------------------- #

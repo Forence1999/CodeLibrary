@@ -5,13 +5,10 @@
 # @GitHub: https://github.com/Forence1999
 # @Time: 26/3/2023
 
-import os, sys
-import time
-import random
-import warnings
-import numpy as np
 from pathlib import Path
-from analysis.CodeLibrary.parallel import multiprocess_Pool
+from analysis.CodeLibrary.parallel import multiprocess_Pool_async
+from analysis.CodeLibrary.audio import check_wav_sample_rate, wav2flac
+from analysis.CodeLibrary.path import collect_pattern, convert_extension, convert_rootpath
 import subprocess
 import warnings
 
@@ -24,59 +21,55 @@ def collect_files_from_all_wav_scp(wav_scp_dir):
 	return file_ls
 
 
-def collect_wv1(raw_dsroot):
-	
-	return [i for i in raw_dsroot.rglob('*.wv1')]
-
-
-def convert_wav_to_flac(file_ls):
-	for file in file_ls:
-		file = file.split(' ')[-1]
-		file = Path(file)
-		if file.suffix == '.wav':
-			file_flac = file.with_suffix('.flac')
-			if not file_flac.exists():
-				os.system(f'ffmpeg -i {file} {file_flac}')
-		elif file.suffix == '.flac':
-			pass
-		else:
-			raise ValueError(f'file {file} is not wav or flac')
-		print(f'processed {file}')
-
-
 def wv2wav(wv_path):
 	global raw_dsroot, wav_dsroot, sph2pipe
 	
-	wav_file = (wav_dsroot / Path(wv_path).relative_to(raw_dsroot)).with_suffix('.wav')
-	wav_file.parent.mkdir(parents=True, exist_ok=True)
-	if not wav_file.exists():
-		# print(f'processing {wav_file}')
-		return subprocess.run([sph2pipe, "-f", "wav", str(wv_path), str(wav_file)], shell=False)
-	else:
-		print(wv_path)
-
-
-# warnings.warn(f'file {wav_file} already exists')
+	wav_path = (wav_dsroot / Path(wv_path).relative_to(raw_dsroot)).with_suffix('.wav')
+	
+	if wav_path.exists():
+		warnings.warn(f"{wav_path} already exists, and will be overwritten")
+	
+	wav_path.parent.mkdir(parents=True, exist_ok=True)
+	return subprocess.run([sph2pipe, "-f", "wav", str(wv_path), str(wav_file)], shell=False)
 
 
 raw_dsroot = Path('/data2/swang/asr/wsj/raw')
 wav_dsroot = Path('/data2/swang/asr/wsj/wav')
+flac_dsroot = Path('/data2/swang/asr/wsj/flac')
 # wav_scp_dir = Path('/data2/swang/asr/wsj/kaldi_data/data')
 sph2pipe = "/home/swang/software/kaldi/tools/sph2pipe_v2.5/sph2pipe"
-
-# if info_line.strip() == '':
-# 	return 1
-# else:
-# 	id, sph2pipe, _, _, wv_path, _ = info_line.split(' ')
-
 
 if __name__ == '__main__':
 	
 	# info_lines = collect_files_from_all_wav_scp(wav_scp_dir)
 	
-	wv1_ls = collect_wv1(raw_dsroot)
-	multiprocess_Pool(wv2wav, wv1_ls, num_workers=128)
+	# convert wv1 to wav
+	wv1_ls = collect_pattern(raw_dsroot, pattern='*.wv1')
+	wv1_arguments = [
+		{
+			"args": (i,)
+		}
+		for i in wv1_ls]
+	multiprocess_Pool_async(wv2wav, wv1_arguments, num_workers=128)
 	
-	# convert_wav_to_flac(file_ls)
+	# assure all wav files are 16k
+	wav_ls = collect_pattern(wav_dsroot, pattern='*.wav')
+	wavsr_arguments = [
+		{
+			"args": (i, 16000)
+		}
+		for i in wav_ls]
+	multiprocess_Pool_async(check_wav_sample_rate, wavsr_arguments, num_workers=128)
 	
-	print('Hello World!')
+	# convert wav to flac
+	wav_ls = collect_pattern(wav_dsroot, pattern='*.wav')
+	flac_ls = convert_extension(convert_rootpath(wav_ls, wav_dsroot, flac_dsroot), '.flac')
+	flac_arguments = [
+		{
+			"args": i,
+			"kwds": {
+				"verbose": 1
+			}
+		}
+		for i in zip(wav_ls, flac_ls)]
+	multiprocess_Pool_async(wav2flac, flac_arguments, num_workers=128)
