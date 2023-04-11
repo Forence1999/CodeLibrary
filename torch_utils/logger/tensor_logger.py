@@ -32,12 +32,12 @@ from distsup.configuration import Globals
 
 class TensorLogger(object):
     NO_LOG_STATE, NULL_LOG_STATE, STEP_LOG_STATE = (
-            'NO_LOG', 'NULL_LOG', 'STEP_LOG')
-
+        'NO_LOG', 'NULL_LOG', 'STEP_LOG')
+    
     # global cache of sumary writers
     summary_writers = {}
     csv_files = {}
-
+    
     def __init__(self):
         self.log_state = self.NO_LOG_STATE
         self.summary_writer = None
@@ -45,12 +45,12 @@ class TensorLogger(object):
         self.bigquery_writer = None
         self.iteration = None
         self.warned_log_state = False
-
+    
     def get_summary_writer(self, path):
         if path not in self.summary_writers:
             self.summary_writers[path] = SummaryWriter(path)
         return self.summary_writers[path]
-
+    
     def get_csv_writer(self, path):
         if path not in self.csv_files:
             fname = '{}/events.{}.{}.csv'.format(
@@ -58,34 +58,34 @@ class TensorLogger(object):
             self.csv_files[path] = open(fname, 'w')
             self.csv_files[path].write('step,name,value\n')
         return self.csv_files[path]
-
+    
     def get_bigquery_writer(self, subset):
-
+        
         if self.bigquery_writer is not None:
             self.bigquery_writer.switch_subset(subset)
             return self.bigquery_writer
-
+        
         if Globals.remote_log:
             bq_dataset = os.environ['GOOGLE_BIGQUERY_DATASET']
             cred_key = os.environ['GOOGLE_APPLICATION_CREDENTIALS']
             return BigQueryWriter(bq_dataset, cred_key=cred_key, subset=subset)
         else:
             return None
-
+    
     def ensure_no_log(self):
         if self.log_state != self.NO_LOG_STATE:
             raise Exception("Cannot call function during active step")
-
+    
     def ensure_during_log(self):
         if self.log_state == self.NO_LOG_STATE and not self.warned_log_state:
             logging.warning("Cannot call functions log_XXX() without"
                             " activating step in the logger")
             self.warned_log_state = True
-
+    
     def is_currently_logging(self):
         self.ensure_during_log()
         return self.log_state == self.STEP_LOG_STATE
-
+    
     def make_step_log(self, log_dir, iteration):
         self.ensure_no_log()
         self.log_state = self.STEP_LOG_STATE
@@ -94,11 +94,11 @@ class TensorLogger(object):
         self.csv_writer = self.get_csv_writer(log_dir)
         subset = log_dir.rstrip('/').rsplit('/', 1)[-1]
         self.bigquery_writer = self.get_bigquery_writer(subset)
-
+    
     def make_null_log(self):
         self.ensure_no_log()
         self.log_state = self.NULL_LOG_STATE
-
+    
     def end_log(self):
         self.ensure_during_log()
         if self.log_state == self.STEP_LOG_STATE:
@@ -111,7 +111,7 @@ class TensorLogger(object):
                 self.bigquery_writer.flush()
             self.iteration = None
         self.log_state = self.NO_LOG_STATE
-
+    
     def log_scalar(self, name, value):
         if self.is_currently_logging():
             self.summary_writer.add_scalar(name, value, self.iteration)
@@ -119,17 +119,17 @@ class TensorLogger(object):
                 self.iteration, name, value))
             if self.bigquery_writer is not None:
                 self.bigquery_writer.write(self.iteration, name, value)
-
+    
     def log_histogram(self, name, values):
         if self.is_currently_logging():
             self.summary_writer.add_histogram(name, values, self.iteration)
-
+    
     def log_image(self, tag, img, **kwargs):
         kwargs.setdefault('dataformats', 'HWC')
         if self.is_currently_logging():
             self.summary_writer.add_image(
                 tag, img, self.iteration, **kwargs)
-
+    
     def log_images(self, tag, img, **kwargs):
         kwargs.setdefault('dataformats', 'NHWC')
         C_idx = kwargs['dataformats'].index('C')
@@ -140,10 +140,11 @@ class TensorLogger(object):
                 img = img.expand(*factors)
             self.summary_writer.add_images(
                 tag, img, self.iteration, **kwargs)
-
+    
     def log_mpl_figure(self, tag, fig):
         if self.is_currently_logging():
             import matplotlib.backends.backend_agg
+            
             matplotlib.backends.backend_agg.FigureCanvas(fig)
             fig.tight_layout()
             fig.canvas.draw()
@@ -152,7 +153,7 @@ class TensorLogger(object):
                                 ).reshape(h, w, 3)
             self.summary_writer.add_image(
                 tag, img, self.iteration, dataformats='HWC')
-
+    
     def log_audio(self, tag, audio):
         if self.is_currently_logging():
             self.summary_writer.add_audio(tag, audio, self.iteration)
@@ -160,57 +161,58 @@ class TensorLogger(object):
 
 class BigQueryWriter(object):
     meta_entry_uploaded = False
-
+    
     def __init__(self, bq_dataset, cred_key, subset='train', upload_every=300):
         from google.cloud import bigquery
+        
         self.client = bigquery.Client()
         self.bq_dataset = bq_dataset
         self._subset = subset
         self.last_upload_attempt = time.time()
         self.upload_every = upload_every
         self._cache = []
-
+    
     def write(self, iteration, name, val):
         if type(val) is torch.Tensor:
             val = val.item()
-
+        
         if np.isneginf(val):
             val = "-inf"
         elif np.isinf(val):
             val = "+inf"
         elif np.isnan(val):
             val = "NaN"
-
+        
         entry = {
-            'uuid': Globals.exp_uuid,
+            'uuid'    : Globals.exp_uuid,
             'date_utc': datetime.datetime.utcnow(),
-            'subset': self._subset,
-            'step': iteration,
-            'name': name,
-            'value': val,
+            'subset'  : self._subset,
+            'step'    : iteration,
+            'name'    : name,
+            'value'   : val,
         }
         self._cache.append(entry)
-
+    
     def maybe_upload_meta(self):
         if BigQueryWriter.meta_entry_uploaded:
             return
-
+        
         path = os.path.abspath(Globals.save_dir)
         paths = path.rstrip('/').split('/')
         meta_entry = {
-            'uuid': Globals.exp_uuid,
-            'date_utc': datetime.datetime.utcnow(),
+            'uuid'      : Globals.exp_uuid,
+            'date_utc'  : datetime.datetime.utcnow(),
             'date_local': datetime.datetime.now(),
-            'exp_tag': Globals.exp_tag or paths[-2],
-            'exp_name': paths[-1],
-            'exp_path': path,
-            'yaml': Globals.exp_config_fpath,
-            'cluster': Globals.cluster,
-            'user': pwd.getpwuid(os.getuid()).pw_name,
-            'host': socket.gethostname(),
+            'exp_tag'   : Globals.exp_tag or paths[-2],
+            'exp_name'  : paths[-1],
+            'exp_path'  : path,
+            'yaml'      : Globals.exp_config_fpath,
+            'cluster'   : Globals.cluster,
+            'user'      : pwd.getpwuid(os.getuid()).pw_name,
+            'host'      : socket.gethostname(),
         }
         config_entry = {
-            'uuid': Globals.exp_uuid,
+            'uuid'  : Globals.exp_uuid,
             'config': json.dumps(Globals.objects_config),
         }
         # Was it uploaded by some previous experiment?
@@ -225,7 +227,7 @@ class BigQueryWriter(object):
             BigQueryWriter.meta_entry_uploaded = True
         except Exception as e:
             logging.error(f'BigQuery: {str(e)}')
-
+    
     def flush(self):
         if time.time() - self.last_upload_attempt < self.upload_every:
             return
@@ -244,16 +246,16 @@ class BigQueryWriter(object):
             self._cache = []
         except Exception as e:
             logging.error(f'BigQuery: {str(e)}')
-
+    
     def check_schema(self, table, entry):
         if set(col.name for col in table.schema) != set(entry.keys()):
             logging.warning(f'BigQuery: {table.table_id} schema mismatch')
-
+        
         dtypes = {
             'DATETIME': [datetime.datetime],
-            'STRING': [str],
-            'INTEGER': [int],
-            'FLOAT': [float, np.float32, np.float64],
+            'STRING'  : [str],
+            'INTEGER' : [int],
+            'FLOAT'   : [float, np.float32, np.float64],
         }
         for col in table.schema:
             t = type(entry[col.name])
@@ -261,9 +263,9 @@ class BigQueryWriter(object):
                 logging.warning(f'BigQuery: Field type mismatch: {col.name}. '
                                 f'Got {str(type(entry[col.name]))}, '
                                 f'expected {str(dtypes[col.field_type])}.')
-
+    
     def switch_subset(self, subset):
         self._subset = subset
-
+    
     def close(self):
         self.flush()

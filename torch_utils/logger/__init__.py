@@ -20,4 +20,5 @@ from __future__ import absolute_import
 from .tensor_logger import TensorLogger
 from .default_tensor_logger import DefaultTensorLogger
 
+
 __all__ = ['tensor_logger', 'default_tensor_logger']
